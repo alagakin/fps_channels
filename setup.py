@@ -1,9 +1,18 @@
+import os
+
 from setuptools import setup, find_packages
+
+
+def read(file_name):
+    return open(os.path.join(os.path.dirname(__file__), file_name)).read()
+
 
 setup(
     name="fps_channels",
-    version="0.2",
+    version="0.3",
     packages=find_packages(),
+    long_description=read('README.md'),
+    long_description_content_type='text/markdown',
     install_requires=[
         "python-telegram-bot==13.9",
         "pandas==1.3.5",
