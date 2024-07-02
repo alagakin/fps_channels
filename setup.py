@@ -9,7 +9,7 @@ def read(file_name):
 
 setup(
     name="fps_channels",
-    version="0.3",
+    version="0.4",
     packages=find_packages(),
     long_description=read('README.md'),
     long_description_content_type='text/markdown',
