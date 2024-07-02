@@ -65,7 +65,7 @@ class TelegramChannel(Channel):
         self.chat_id = chat_id
         self._bot = telegram.Bot(self.bot_token)
 
-    def send_df_as_png(self, stat: DataFrame, caption: str = "") -> None:
+    def send_as_png(self, stat: DataFrame, caption: str = "") -> None:
         f_name = self._stat_to_png(stat)
         with open(f_name, 'rb') as file:
             content = file.read()
