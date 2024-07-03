@@ -9,16 +9,16 @@ def read(file_name):
 
 setup(
     name="fps_channels",
-    version="0.3",
+    version="1.0",
     packages=find_packages(),
     long_description=read('README.md'),
     long_description_content_type='text/markdown',
     install_requires=[
-        "python-telegram-bot==13.9",
         "pandas==1.3.5",
         "dataframe-image==0.1.5",
         "tenacity==8.2.3",
         "lxml==4.9.2",
         "openpyxl==3.1.1",
+        "aiohttp==3.9.5"
     ]
 )

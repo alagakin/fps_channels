@@ -12,18 +12,14 @@ from .helpers import get_current_file_name, df_to_png, split_telegram_message, g
 
 
 class TelegramChannel(AbstractChannel):
-    """
-    Канал для отправки статистики через Telegram.
-    """
-
     MAX_TIMEOUT = 60
 
     def __init__(self, bot_token: str, chat_id: Union[str, int]) -> None:
         self.bot_token = bot_token
         self.chat_id = chat_id
 
-    def send_df_as_png(self, stat: DataFrame, caption: str = "") -> None:
-        f_name = df_to_png(stat)
+    def send_as_png(self, df: DataFrame, caption: str = "") -> None:
+        f_name = df_to_png(df)
         try:
             caption = self._prepare_message(caption)
             self._send_photo(f_name, caption)
@@ -54,13 +50,12 @@ class TelegramChannel(AbstractChannel):
 
     def send_exception(self, e: Exception) -> None:
         exception_text = get_exception_text(e)
-        message = self._prepare_message(exception_text)
-        self.send_message(message)
+        self.send_message(exception_text)
 
-    def send_as_xmlx(self, stat: DataFrame, caption: str = ""):
+    def send_as_xmlx(self, df: DataFrame, caption: str = ""):
         try:
             with tempfile.NamedTemporaryFile(delete=True, suffix=".xlsx") as temp_file:
-                stat.to_excel(temp_file.name, index=False)
+                df.to_excel(temp_file.name, index=False)
                 caption = self._prepare_message(caption)
                 self._send_document(
                     document_path=temp_file.name,

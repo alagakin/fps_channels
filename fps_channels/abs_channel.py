@@ -21,7 +21,7 @@ class AbstractChannel(ABC):
         ...
 
     @abstractmethod
-    def send_df_as_png(self, stat: DataFrame, caption: str) -> None:
+    def send_as_png(self, stat: DataFrame, caption: str) -> None:
         ...
 
     @abstractmethod

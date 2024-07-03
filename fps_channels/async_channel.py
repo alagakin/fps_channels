@@ -1,6 +1,7 @@
+import tempfile
 import traceback
 import aiohttp
-import requests
+
 from typing import Union
 from pandas import DataFrame
 from tenacity import (RetryError, retry, retry_if_exception_type,
@@ -8,7 +9,7 @@ from tenacity import (RetryError, retry, retry_if_exception_type,
 
 from .abs_channel import AbstractChannel
 from .exceptions import TelegramException
-from .helpers import get_current_file_name, df_to_png, split_telegram_message, get_exception_text
+from .helpers import df_to_png, split_telegram_message, get_exception_text
 
 
 class AsyncTelegramChannel(AbstractChannel):
@@ -20,6 +21,10 @@ class AsyncTelegramChannel(AbstractChannel):
     def __init__(self, bot_token: str, chat_id: Union[str, int]) -> None:
         self.bot_token = bot_token
         self.chat_id = chat_id
+        self.timeout = aiohttp.ClientTimeout(
+            total=10,
+            connect=3
+        )
 
     async def send_message(self, message: str) -> None:
         if not message:
@@ -33,14 +38,29 @@ class AsyncTelegramChannel(AbstractChannel):
         except RetryError:
             traceback.print_exc()
 
-    def send_as_xmlx(self, stat: DataFrame, caption: str) -> None:
-        pass
+    async def send_as_png(self, df: DataFrame, caption: str = "") -> None:
+        f_name = df_to_png(df)
+        try:
+            caption = self._prepare_message(caption)
+            await self._send_photo(f_name, caption)
+        except RetryError:
+            traceback.print_exc()
 
-    def send_df_as_png(self, stat: DataFrame, caption: str) -> None:
-        pass
+    async def send_as_xmlx(self, df: DataFrame, caption: str = "") -> None:
+        try:
+            with tempfile.NamedTemporaryFile(delete=True, suffix=".xlsx") as temp_file:
+                df.to_excel(temp_file.name, index=False)
+                caption = self._prepare_message(caption)
+                await self._send_document(
+                    document_path=temp_file.name,
+                    caption=caption
+                )
+        except TelegramException:
+            traceback.print_exc()
 
-    def send_exception(self, e: Exception) -> None:
-        pass
+    async def send_exception(self, e: Exception) -> None:
+        exception_text = get_exception_text(e)
+        await self.send_message(exception_text)
 
     @retry(
         wait=wait_fixed(5),
@@ -53,7 +73,7 @@ class AsyncTelegramChannel(AbstractChannel):
             text: str
     ) -> None:
         conn = aiohttp.TCPConnector(ssl=False)
-        async with aiohttp.ClientSession(connector=conn) as session:
+        async with aiohttp.ClientSession(connector=conn, timeout=self.timeout) as session:
             url = f'https://api.telegram.org/bot{self.bot_token}/sendMessage'
             data = {
                 'chat_id': self.chat_id,
@@ -62,3 +82,51 @@ class AsyncTelegramChannel(AbstractChannel):
             async with session.post(url, json=data) as response:
                 if response.status != 200:
                     raise TelegramException(response.text)
+
+    @retry(
+        wait=wait_fixed(5),
+        stop=stop_after_attempt(3),
+        retry=retry_if_exception_type(TelegramException),
+        reraise=True
+    )
+    async def _send_photo(
+            self,
+            photo_path: str,
+            caption: str,
+    ) -> None:
+        conn = aiohttp.TCPConnector(ssl=False)
+        with open(photo_path, 'rb') as file:
+            async with aiohttp.ClientSession(connector=conn, timeout=self.timeout) as session:
+                url = f'https://api.telegram.org/bot{self.bot_token}/sendPhoto'
+                data = aiohttp.FormData()
+                data.add_field('chat_id', str(self.chat_id))
+                data.add_field('caption', caption)
+                data.add_field('photo', file)
+
+                async with session.post(url, data=data) as response:
+                    if response.status != 200:
+                        raise TelegramException(response.text)
+
+    @retry(
+        wait=wait_fixed(5),
+        stop=stop_after_attempt(3),
+        retry=retry_if_exception_type(TelegramException),
+        reraise=True
+    )
+    async def _send_document(
+            self,
+            document_path: str,
+            caption: str
+    ) -> None:
+        conn = aiohttp.TCPConnector(ssl=False)
+        with open(document_path, 'rb') as file:
+            async with aiohttp.ClientSession(connector=conn, timeout=self.timeout) as session:
+                url = f'https://api.telegram.org/bot{self.bot_token}/sendDocument'
+                data = aiohttp.FormData()
+                data.add_field('chat_id', str(self.chat_id))
+                data.add_field('caption', caption)
+                data.add_field('document', file, filename=file.name)
+
+                async with session.post(url, data=data) as response:
+                    if response.status != 200:
+                        raise TelegramException(response.text)
