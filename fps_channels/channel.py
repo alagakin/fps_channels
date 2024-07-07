@@ -41,16 +41,20 @@ class TelegramChannel(AbstractChannel):
     def _prepare_message(self, message: str):
         if self.SHOW_FILENAME:
             file_name = get_current_file_name()
-            message = f"📂 file {file_name} \n {message}"
+            message = f"📂 file {file_name} \n{message}"
 
         if self.HEADER:
             message = self.HEADER + "\n" + message
 
         return message
 
-    def send_exception(self, e: Exception) -> None:
+    def send_exception(self, e: Exception, caption: str = "") -> None:
         exception_text = get_exception_text(e)
-        self.send_message(exception_text)
+        if caption:
+            full_text = "📝 " + caption + "\n" + exception_text
+        else:
+            full_text = exception_text
+        self.send_message(full_text)
 
     def send_as_xmlx(self, df: DataFrame, caption: str = ""):
         try:

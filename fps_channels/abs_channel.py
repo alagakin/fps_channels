@@ -31,7 +31,7 @@ class AbstractChannel(ABC):
     def _prepare_message(self, message: str) -> str:
         if self.SHOW_FILENAME:
             file_name = get_current_file_name()
-            message = f"📂 file {file_name} \n {message}"
+            message = f"📂 file {file_name} \n{message}"
 
         if self.HEADER:
             message = self.HEADER + "\n" + message

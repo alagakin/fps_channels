@@ -58,9 +58,13 @@ class AsyncTelegramChannel(AbstractChannel):
         except TelegramException:
             traceback.print_exc()
 
-    async def send_exception(self, e: Exception) -> None:
+    async def send_exception(self, e: Exception, caption: str = "") -> None:
         exception_text = get_exception_text(e)
-        await self.send_message(exception_text)
+        if caption:
+            full_text = "📝 " + caption + "\n" + exception_text
+        else:
+            full_text = exception_text
+        await self.send_message(full_text)
 
     @retry(
         wait=wait_fixed(5),
